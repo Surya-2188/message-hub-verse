@@ -7,6 +7,9 @@ import { useNavigate } from "react-router-dom";
 import { Search, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ChatPreview } from "./ChatPreview";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/components/ui/use-toast";
 
 // Mock data
 const recentChats = [
@@ -56,21 +59,64 @@ const recentChats = [
 
 export function ChatList() {
   const [searchTerm, setSearchTerm] = useState("");
+  const [newChatContact, setNewChatContact] = useState("");
+  const [isNewChatDialogOpen, setIsNewChatDialogOpen] = useState(false);
   const navigate = useNavigate();
+  const { toast } = useToast();
 
   const filteredChats = recentChats.filter((chat) =>
     chat.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     chat.lastMessage.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const handleStartNewChat = () => {
+    if (newChatContact.trim()) {
+      toast({
+        title: "New chat started",
+        description: `Started a new conversation with ${newChatContact}`,
+      });
+      setNewChatContact("");
+      setIsNewChatDialogOpen(false);
+      // In a real app, we would create a new chat and navigate to it
+      navigate(`/chats/new-${Date.now()}`);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full border-r">
       <div className="p-4 border-b">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-bold">Messages</h2>
-          <Button size="icon" variant="ghost">
-            <Plus className="h-5 w-5" />
-          </Button>
+          <Dialog open={isNewChatDialogOpen} onOpenChange={setIsNewChatDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="icon" variant="ghost">
+                <Plus className="h-5 w-5" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Start New Chat</DialogTitle>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="contact" className="text-right">Contact</Label>
+                  <Input
+                    id="contact"
+                    placeholder="Enter contact name"
+                    className="col-span-3"
+                    value={newChatContact}
+                    onChange={(e) => setNewChatContact(e.target.value)}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="outline">Cancel</Button>
+                </DialogClose>
+                <Button onClick={handleStartNewChat}>Start Chat</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />

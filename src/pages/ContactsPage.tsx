@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -10,7 +11,15 @@ import { useToast } from "@/components/ui/use-toast";
 import { ContactCard } from "@/components/contacts/ContactCard";
 import { AddContactModal } from "@/components/contacts/AddContactModal";
 import { EditContactModal } from "@/components/contacts/EditContactModal";
+import { AddGroupModal } from "@/components/contacts/AddGroupModal";
 import { useContacts, Contact } from "@/context/contacts-context";
+
+interface Group {
+  id: string;
+  name: string;
+  members: string[];
+  avatar?: string;
+}
 
 const ContactsPage = () => {
   const navigate = useNavigate();
@@ -22,12 +31,18 @@ const ContactsPage = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("all");
+  const [isAddGroupModalOpen, setIsAddGroupModalOpen] = useState(false);
+  const [groups, setGroups] = useState<Group[]>([]);
   
   const filteredContacts = contacts.filter((contact) =>
     contact.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const onlineContacts = filteredContacts.filter(c => c.status === 'online');
+  
+  const filteredGroups = groups.filter((group) =>
+    group.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
   
   const handleAddContact = (newContact: Contact) => {
     addContact(newContact);
@@ -63,13 +78,45 @@ const ContactsPage = () => {
 
   const handleAddButtonClick = () => {
     if (activeTab === "groups") {
-      toast({
-        title: "Add Group",
-        description: "Group creation functionality coming soon!",
-      });
+      setIsAddGroupModalOpen(true);
     } else {
       setIsAddModalOpen(true);
     }
+  };
+
+  const handleAddGroup = (groupName: string, memberIds: string[]) => {
+    const newGroup: Group = {
+      id: `group-${Date.now()}`,
+      name: groupName,
+      members: memberIds,
+      avatar: "/placeholder.svg"
+    };
+    
+    setGroups([...groups, newGroup]);
+    setIsAddGroupModalOpen(false);
+    
+    toast({
+      title: "Group created",
+      description: `Group "${groupName}" with ${memberIds.length} members created successfully`,
+    });
+  };
+
+  const handleStartGroupChat = (groupId: string) => {
+    const group = groups.find(g => g.id === groupId);
+    if (group) {
+      navigate(`/chats/${groupId}`);
+      toast({
+        title: `Starting group chat in ${group.name}`,
+      });
+    }
+  };
+
+  const handleDeleteGroup = (groupId: string) => {
+    setGroups(groups.filter(group => group.id !== groupId));
+    toast({
+      title: "Group deleted",
+      description: "The group has been successfully deleted",
+    });
   };
 
   const selectedContact = selectedContactId ? getContactById(selectedContactId) : null;
@@ -167,9 +214,51 @@ const ContactsPage = () => {
           </TabsContent>
           
           <TabsContent value="groups" className="mt-0">
-            <div className="text-center py-12 text-muted-foreground">
-              No groups created yet
-            </div>
+            <ScrollArea className="h-[calc(100vh-240px)]">
+              {filteredGroups.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {filteredGroups.map((group) => (
+                    <div key={group.id} className="border rounded-md p-4 flex flex-col">
+                      <div className="flex items-center gap-3 mb-4">
+                        <Avatar className="h-12 w-12">
+                          <AvatarImage src={group.avatar} alt={group.name} />
+                          <AvatarFallback className="bg-primary/10 text-primary">
+                            {group.name[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <h3 className="font-medium">{group.name}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {group.members.length} members
+                          </p>
+                        </div>
+                      </div>
+                      <div className="mt-auto flex justify-between">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleDeleteGroup(group.id)}
+                        >
+                          Delete
+                        </Button>
+                        <Button 
+                          size="sm"
+                          onClick={() => handleStartGroupChat(group.id)}
+                        >
+                          Chat
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  {searchTerm 
+                    ? "No groups found with that name" 
+                    : "No groups created yet. Create your first group!"}
+                </div>
+              )}
+            </ScrollArea>
           </TabsContent>
         </Tabs>
       </div>
@@ -189,6 +278,12 @@ const ContactsPage = () => {
         onSave={handleEditContact}
         onDelete={handleDeleteContact}
         contact={selectedContact}
+      />
+
+      <AddGroupModal
+        isOpen={isAddGroupModalOpen}
+        onClose={() => setIsAddGroupModalOpen(false)}
+        onAddGroup={handleAddGroup}
       />
     </AppLayout>
   );

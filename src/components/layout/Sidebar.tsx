@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -10,6 +10,34 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
+import { 
+  Popover, 
+  PopoverContent, 
+  PopoverTrigger 
+} from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
+
+// Mock notifications
+const initialNotifications = [
+  { 
+    id: "1", 
+    content: "Sarah Johnson sent you a message", 
+    time: "5 minutes ago", 
+    isRead: false 
+  },
+  { 
+    id: "2", 
+    content: "New update available", 
+    time: "1 hour ago", 
+    isRead: false 
+  },
+  { 
+    id: "3", 
+    content: "Mike added you to Tech Team group", 
+    time: "2 hours ago", 
+    isRead: true 
+  }
+];
 
 export function Sidebar() {
   const { pathname } = useLocation();
@@ -17,6 +45,10 @@ export function Sidebar() {
   const { toast } = useToast();
   const isMobile = useIsMobile();
   const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobile);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [notifications, setNotifications] = useState(initialNotifications);
+  
+  const unreadCount = notifications.filter(n => !n.isRead).length;
   
   const handleLogout = () => {
     localStorage.removeItem('user');
@@ -24,6 +56,31 @@ export function Sidebar() {
       title: "Logged out successfully",
     });
     navigate('/login');
+  };
+
+  const handleSearch = (e) => {
+    setSearchQuery(e.target.value);
+    if (e.key === 'Enter' && searchQuery.trim()) {
+      toast({
+        title: "Search results",
+        description: `Searching for "${searchQuery}"`,
+      });
+      // In a real app, this would navigate to search results or filter the UI
+    }
+  };
+
+  const markAllAsRead = () => {
+    setNotifications(notifications.map(n => ({ ...n, isRead: true })));
+    toast({
+      title: "Notifications",
+      description: "All notifications marked as read",
+    });
+  };
+
+  const markAsRead = (id) => {
+    setNotifications(notifications.map(n => 
+      n.id === id ? { ...n, isRead: true } : n
+    ));
   };
 
   const navItems = [
@@ -100,6 +157,9 @@ export function Sidebar() {
             <input
               className="w-full bg-sidebar-accent text-sidebar-accent-foreground rounded-md py-2 pl-9 pr-4 text-sm placeholder:text-sidebar-accent-foreground/60 focus:outline-none focus:ring-2 focus:ring-sidebar-ring"
               placeholder="Search..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={handleSearch}
             />
           </div>
         </div>
@@ -136,13 +196,71 @@ export function Sidebar() {
                 {JSON.parse(localStorage.getItem('user') || '{"name":"User"}').name}
               </div>
             </div>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-            >
-              <Bell className="h-5 w-5" />
-            </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  className="relative text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+                >
+                  <Bell className="h-5 w-5" />
+                  {unreadCount > 0 && (
+                    <Badge 
+                      variant="destructive" 
+                      className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs"
+                    >
+                      {unreadCount}
+                    </Badge>
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-0" align="end">
+                <div className="flex items-center justify-between p-4 border-b">
+                  <h3 className="font-medium">Notifications</h3>
+                  {unreadCount > 0 && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="text-xs"
+                      onClick={markAllAsRead}
+                    >
+                      Mark all as read
+                    </Button>
+                  )}
+                </div>
+                <ScrollArea className="max-h-[300px]">
+                  {notifications.length > 0 ? (
+                    <div className="py-2">
+                      {notifications.map((notification) => (
+                        <div 
+                          key={notification.id} 
+                          className={cn(
+                            "px-4 py-3 hover:bg-muted/50 cursor-pointer transition-colors",
+                            !notification.isRead && "bg-muted/30"
+                          )}
+                          onClick={() => markAsRead(notification.id)}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className={cn(
+                              "h-2 w-2 rounded-full mt-1.5",
+                              notification.isRead ? "bg-muted-foreground/50" : "bg-primary"
+                            )} />
+                            <div className="flex-1">
+                              <p className="text-sm mb-1">{notification.content}</p>
+                              <p className="text-xs text-muted-foreground">{notification.time}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="py-8 text-center text-muted-foreground">
+                      <p>No notifications</p>
+                    </div>
+                  )}
+                </ScrollArea>
+              </PopoverContent>
+            </Popover>
           </div>
           
           <Button
