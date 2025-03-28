@@ -5,11 +5,34 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Edit, Mail, Phone, User } from "lucide-react";
+import { Edit, Mail, Phone, User, LogOut } from "lucide-react";
+import { useToast } from "@/components/ui/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export function ProfileView() {
   const [user, setUser] = useState<any>(null);
+  const [privacySettings, setPrivacySettings] = useState({
+    profileVisibility: "Everyone",
+    lastSeen: "Nobody",
+    readReceipts: "Everyone"
+  });
+  const [notificationSettings, setNotificationSettings] = useState({
+    pushNotifications: true,
+    messagePreview: true,
+    sound: true
+  });
   const navigate = useNavigate();
+  const { toast } = useToast();
   
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -17,6 +40,81 @@ export function ProfileView() {
       setUser(JSON.parse(storedUser));
     }
   }, []);
+
+  // Privacy settings handlers
+  const togglePrivacySetting = (setting: string) => {
+    const options = {
+      profileVisibility: ["Everyone", "Contacts", "Nobody"],
+      lastSeen: ["Everyone", "Contacts", "Nobody"],
+      readReceipts: ["Everyone", "Contacts", "Nobody"]
+    };
+    
+    const currentValue = privacySettings[setting as keyof typeof privacySettings];
+    const currentIndex = options[setting as keyof typeof options].indexOf(currentValue);
+    const nextIndex = (currentIndex + 1) % options[setting as keyof typeof options].length;
+    const nextValue = options[setting as keyof typeof options][nextIndex];
+    
+    setPrivacySettings(prev => ({
+      ...prev,
+      [setting]: nextValue
+    }));
+    
+    toast({
+      title: "Setting updated",
+      description: `${setting} is now set to ${nextValue}`
+    });
+  };
+
+  // Notification settings handlers
+  const toggleNotificationSetting = (setting: string) => {
+    setNotificationSettings(prev => {
+      const newValue = !prev[setting as keyof typeof prev];
+      
+      toast({
+        title: "Setting updated",
+        description: `${setting} is now ${newValue ? 'enabled' : 'disabled'}`
+      });
+      
+      return {
+        ...prev,
+        [setting]: newValue
+      };
+    });
+  };
+
+  // Security handlers
+  const handleTwoFactorAuth = () => {
+    toast({
+      title: "Two-factor authentication",
+      description: "This feature will be available soon."
+    });
+  };
+  
+  const handleChangePassword = () => {
+    navigate("/settings");
+    toast({
+      title: "Change password",
+      description: "You can change your password in the settings page."
+    });
+  };
+  
+  const handleViewSessions = () => {
+    navigate("/settings");
+    toast({
+      title: "Active sessions",
+      description: "You can view your active sessions in the settings page."
+    });
+  };
+
+  const handleLogout = () => {
+    // Clear user data and redirect to login
+    localStorage.removeItem('user');
+    navigate("/login");
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out."
+    });
+  };
 
   if (!user) {
     return (
@@ -32,10 +130,32 @@ export function ProfileView() {
     <div className="max-w-2xl mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Profile</h1>
-        <Button onClick={() => navigate("/profile/edit")}>
-          <Edit className="mr-2 h-4 w-4" />
-          Edit Profile
-        </Button>
+        <div className="flex gap-2">
+          <Button onClick={() => navigate("/profile/edit")}>
+            <Edit className="mr-2 h-4 w-4" />
+            Edit Profile
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="outline">
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure you want to logout?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  You'll need to sign in again to access your account.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleLogout}>Logout</AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
       
       <Card className="mb-6">
@@ -90,8 +210,12 @@ export function ProfileView() {
                     Control who can see your profile information
                   </p>
                 </div>
-                <Button variant="outline" size="sm">
-                  Everyone
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => togglePrivacySetting('profileVisibility')}
+                >
+                  {privacySettings.profileVisibility}
                 </Button>
               </div>
               
@@ -102,8 +226,12 @@ export function ProfileView() {
                     Control who can see when you were last online
                   </p>
                 </div>
-                <Button variant="outline" size="sm">
-                  Nobody
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => togglePrivacySetting('lastSeen')}
+                >
+                  {privacySettings.lastSeen}
                 </Button>
               </div>
               
@@ -114,8 +242,12 @@ export function ProfileView() {
                     Let others know when you've read their messages
                   </p>
                 </div>
-                <Button variant="outline" size="sm">
-                  Everyone
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => togglePrivacySetting('readReceipts')}
+                >
+                  {privacySettings.readReceipts}
                 </Button>
               </div>
             </CardContent>
@@ -132,8 +264,12 @@ export function ProfileView() {
                     Receive notifications when you're not using the app
                   </p>
                 </div>
-                <Button variant="outline" size="sm">
-                  Enabled
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => toggleNotificationSetting('pushNotifications')}
+                >
+                  {notificationSettings.pushNotifications ? 'Enabled' : 'Disabled'}
                 </Button>
               </div>
               
@@ -144,8 +280,12 @@ export function ProfileView() {
                     Show message content in notifications
                   </p>
                 </div>
-                <Button variant="outline" size="sm">
-                  Enabled
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => toggleNotificationSetting('messagePreview')}
+                >
+                  {notificationSettings.messagePreview ? 'Enabled' : 'Disabled'}
                 </Button>
               </div>
               
@@ -156,8 +296,12 @@ export function ProfileView() {
                     Play sound for new messages
                   </p>
                 </div>
-                <Button variant="outline" size="sm">
-                  Enabled
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => toggleNotificationSetting('sound')}
+                >
+                  {notificationSettings.sound ? 'Enabled' : 'Disabled'}
                 </Button>
               </div>
             </CardContent>
@@ -174,7 +318,11 @@ export function ProfileView() {
                     Add an extra layer of security to your account
                   </p>
                 </div>
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleTwoFactorAuth}
+                >
                   Disabled
                 </Button>
               </div>
@@ -186,7 +334,11 @@ export function ProfileView() {
                     Update your password regularly for better security
                   </p>
                 </div>
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleChangePassword}
+                >
                   Change
                 </Button>
               </div>
@@ -198,7 +350,11 @@ export function ProfileView() {
                     Manage devices where you're currently logged in
                   </p>
                 </div>
-                <Button variant="outline" size="sm">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleViewSessions}
+                >
                   View
                 </Button>
               </div>

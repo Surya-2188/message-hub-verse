@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { Loader2, Camera } from "lucide-react";
 
 export function ProfileForm() {
   const [isLoading, setIsLoading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
   
@@ -31,6 +32,35 @@ export function ProfileForm() {
   ) => {
     const { name, value } = e.target;
     setFormData((prev: any) => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileInputClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      
+      reader.onload = (event) => {
+        if (event.target && event.target.result) {
+          setFormData((prev: any) => ({
+            ...prev,
+            avatar: event.target?.result
+          }));
+          
+          toast({
+            title: "Profile picture updated",
+            description: "Your profile picture has been uploaded successfully.",
+          });
+        }
+      };
+      
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -83,11 +113,25 @@ export function ProfileForm() {
               variant="secondary" 
               size="icon" 
               className="absolute bottom-0 right-0 rounded-full h-8 w-8"
+              onClick={handleFileInputClick}
+              type="button"
             >
               <Camera className="h-4 w-4" />
             </Button>
           </div>
-          <Button variant="link" className="text-sm">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleAvatarChange}
+            className="hidden"
+          />
+          <Button 
+            variant="link" 
+            className="text-sm"
+            type="button"
+            onClick={handleFileInputClick}
+          >
             Change profile picture
           </Button>
         </div>
