@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AppLayout } from "@/components/layout/AppLayout";
@@ -6,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, Plus, User, Users, UserPlus } from "lucide-react";
+import { Search, Plus, User, Users, UserPlus, UsersRound } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { ContactCard } from "@/components/contacts/ContactCard";
 import { AddContactModal } from "@/components/contacts/AddContactModal";
@@ -22,6 +21,7 @@ const ContactsPage = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedContactId, setSelectedContactId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("all");
   
   const filteredContacts = contacts.filter((contact) =>
     contact.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -61,6 +61,17 @@ const ContactsPage = () => {
     setIsEditModalOpen(true);
   };
 
+  const handleAddButtonClick = () => {
+    if (activeTab === "groups") {
+      toast({
+        title: "Add Group",
+        description: "Group creation functionality coming soon!",
+      });
+    } else {
+      setIsAddModalOpen(true);
+    }
+  };
+
   const selectedContact = selectedContactId ? getContactById(selectedContactId) : null;
 
   return (
@@ -68,9 +79,18 @@ const ContactsPage = () => {
       <div className="max-w-4xl mx-auto p-6">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Contacts</h1>
-          <Button onClick={() => setIsAddModalOpen(true)}>
-            <UserPlus className="mr-2 h-4 w-4" />
-            Add Contact
+          <Button onClick={handleAddButtonClick}>
+            {activeTab === "groups" ? (
+              <>
+                <UsersRound className="mr-2 h-4 w-4" />
+                Add Group
+              </>
+            ) : (
+              <>
+                <UserPlus className="mr-2 h-4 w-4" />
+                Add Contact
+              </>
+            )}
           </Button>
         </div>
         
@@ -84,7 +104,7 @@ const ContactsPage = () => {
           />
         </div>
         
-        <Tabs defaultValue="all">
+        <Tabs defaultValue="all" onValueChange={(value) => setActiveTab(value)}>
           <TabsList className="mb-4">
             <TabsTrigger value="all" className="flex items-center">
               <Users className="mr-2 h-4 w-4" />
@@ -94,7 +114,10 @@ const ContactsPage = () => {
               <div className="mr-2 h-2 w-2 rounded-full bg-green-500"></div>
               Online
             </TabsTrigger>
-            <TabsTrigger value="groups">Groups</TabsTrigger>
+            <TabsTrigger value="groups" className="flex items-center">
+              <UsersRound className="mr-2 h-4 w-4" />
+              Groups
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="all" className="mt-0">
@@ -151,7 +174,6 @@ const ContactsPage = () => {
         </Tabs>
       </div>
 
-      {/* Modals */}
       <AddContactModal 
         isOpen={isAddModalOpen} 
         onClose={() => setIsAddModalOpen(false)} 
